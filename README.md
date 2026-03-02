@@ -4,7 +4,7 @@ Este es mi proyecto del módulo de Backend.
 
 He creado un servidor con Express conectado a MongoDB Atlas.
 
-## Lo que incluye
+## Lo que incluye mi proyecto
 
 - Dos modelos como mínimo
 - Relación entre modelos
