@@ -13,8 +13,8 @@ const userSchema = new mongoose.Schema(
     },
 
     
-    image: { type: String, required: true },
-    imagePublicId: { type: String, required: true },
+    image: { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
 
 
     posts: [

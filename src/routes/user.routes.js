@@ -1,11 +1,26 @@
-const { upload } = require("../middlewares/upload");
 const express = require("express");
-const { getUsers, createUser, login, deleteUser } = require("../controllers/user.controller");
-const userRoutes = express.Router();
+const router = express.Router();
 
-userRoutes.get("/", getUsers);
-userRoutes.post("/", upload.single("image"), createUser);
-userRoutes.post("/login", login);
-userRoutes.delete("/:id", deleteUser);
+const {
+  getUsers,
+  createUser,
+  login,
+  updateUser,
+  deleteUser,
+  updateUserRole,
+} = require("../controllers/user.controller");
 
-module.exports = userRoutes;
+const authMiddleware = require("../middlewares/auth");
+const isAdmin = require("../middlewares/isAdmin");
+
+// Público
+router.post("/register", createUser);
+router.post("/login", login);
+
+// Protegidas
+router.get("/", authMiddleware, getUsers);
+router.put("/:id", authMiddleware, updateUser);
+router.delete("/:id", authMiddleware, deleteUser);
+router.put("/role/:id", authMiddleware, isAdmin, updateUserRole);
+
+module.exports = router;
