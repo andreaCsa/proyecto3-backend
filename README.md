@@ -1,162 +1,133 @@
-## Proyecto 3 - Backend
+# Proyecto 3 - Backend API
 
-Este es mi proyecto del módulo de Backend.
+API REST desarrollada con `Node.js`, `Express` y `MongoDB Atlas` para el proyecto final del módulo de Backend.
 
-He creado un servidor con Express conectado a MongoDB Atlas.
+El proyecto incluye autenticación con JWT, roles de usuario, relación entre modelos, subida de imágenes con Cloudinary y una seed para una de las colecciones.
 
-## Lo que incluye mi proyecto
-
-- Dos modelos como mínimo
-- Relación entre modelos
-- CRUD completo
-- Sistema de roles (user y admin)
-- Middleware de autenticación
-- Subida de imágenes con Cloudinary
-- Eliminación de imagen al borrar usuario
-- Seed de datos
-
-## Para ejecutarlo
-
-npm install  
-npm run dev
-
-Proyecto realizado, Andrea
-#  Proyecto 3 – Backend API
-
-Backend desarrollado con Node.js y Express que implementa autenticación con JWT, roles de usuario, relaciones entre modelos, subida de imágenes con Cloudinary y seed de datos.
-
----
-
-## 🛠 Tecnologías utilizadas
+## Tecnologías usadas
 
 - Node.js
 - Express
-- MongoDB
+- MongoDB Atlas
 - Mongoose
-- JWT (jsonwebtoken)
+- JWT
 - bcrypt
 - Cloudinary
 - Multer
 - dotenv
 - CORS
 
----
+## Modelos del proyecto
 
-## Modelos
-## User
-- username
-- email
-- password (encriptado con bcrypt)
-- role ("user" / "admin")
-- image
-- imagePublicId
-- posts (array relacionado con Post)
+### User
+
+- `username`
+- `email`
+- `password`
+- `role`
+- `image`
+- `imagePublicId`
+- `posts` array relacionado con la colección `Post`
 
 ### Post
-- title
-- content
-- author (referencia a User)
 
-###  Car
-- Modelo independiente con CRUD completo
+- `title`
+- `content`
+- `image`
+- `author` referencia a `User`
 
----
+### Car
 
-## Autenticación
+- `brand`
+- `model`
+- `type`
+- `image`
+- `link`
 
-- Registro de usuario
-- Login con generación de JWT
+## Requisitos cubiertos
+
+- Mínimo de 2 modelos
+- Relación entre colecciones
+- CRUD completo
 - Middleware de autenticación
-- Protección de rutas
-- Control de roles (admin / user)
+- Roles `user` y `admin`
+- Registro de usuarios siempre con rol `user`
+- El primer admin se cambia manualmente desde MongoDB Atlas
+- Un admin puede cambiar el rol de otros usuarios
+- Un usuario normal no puede cambiar roles
+- Un usuario puede eliminar su propia cuenta
+- Un admin puede eliminar cuentas de otros usuarios
+- Subida de imagen con Cloudinary
+- Eliminación de imagen de Cloudinary al borrar usuario
+- Seed para una colección
+- Prevención de duplicados en el array `posts` con `$addToSet`
 
-### Seguridad implementada
+## Instalación
 
-- Password encriptada
-- Token JWT con expiración
-- Solo el usuario puede eliminar su propia cuenta
-- Solo el admin puede cambiar roles
-- Rutas protegidas mediante middleware
-- No se permiten duplicados en el array de posts (uso de `$addToSet`)
-
----
-
-## CRUD Implementado
-
-### Users
-- Register
-- Login
-- Get users (protegido)
-- Delete user (protegido con validación de identidad)
-- Update role (solo admin)
-
-### Posts
-- Create (protegido)
-- Get all
-- Get by id
-- Update
-- Delete (solo autor o admin)
-
-### Cars
-- Create (protegido)
-- Get all
-- Get by id
-- Update (protegido)
-- Delete (protegido)
-
----
-
-##  Seed
-
-Para ejecutar datos de prueba:
-
-```
-npm run seed
-```
-
----
-
-## ▶️ Cómo ejecutar el proyecto
-
-1. Instalar dependencias:
-
-```
+```bash
 npm install
 ```
 
-2. Configurar archivo `.env`:
+## Variables de entorno
 
-```
-MONGO_URI=tu_uri
-JWT_SECRET=tu_secret
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
+Crea un archivo `.env` con estas variables:
+
+```env
+PORT=3000
+MONGO_URI=tu_uri_de_mongodb_atlas
+JWT_SECRET=tu_clave_secreta
+CLOUDINARY_CLOUD_NAME=tu_cloud_name
+CLOUDINARY_API_KEY=tu_api_key
+CLOUDINARY_API_SECRET=tu_api_secret
 ```
 
-3. Ejecutar servidor:
+## Ejecutar el proyecto
 
-```
+```bash
 npm run dev
 ```
 
-Servidor disponible en:
+Servidor disponible en `http://localhost:3000`
 
+## Seed
+
+La seed incluida carga datos de ejemplo en la colección `cars`.
+
+```bash
+npm run seed
 ```
-http://localhost:3000
-```
 
----
+## Endpoints principales
 
-## Estado del proyecto
+### Users
 
-✔ Autenticación funcional  
-✔ Roles implementados  
-✔ Middleware funcionando  
-✔ CRUD completo  
-✔ Relaciones entre modelos  
-✔ Protección real de datos  
-✔ Seed funcional
+- `POST /users/register`
+- `POST /users/login`
+- `GET /users` solo admin
+- `PUT /users/:id`
+- `PATCH /users/image/me`
+- `DELETE /users/:id`
+- `PUT /users/role/:id` solo admin
 
----
+### Posts
 
-Proyecto realizado por Andrea Simon
+- `GET /posts`
+- `GET /posts/:id`
+- `POST /posts`
+- `PUT /posts/:id`
+- `DELETE /posts/:id`
+
+### Cars
+
+- `GET /cars`
+- `GET /cars/:id`
+- `POST /cars`
+- `PUT /cars/:id`
+- `DELETE /cars/:id`
+
+## Notas importantes
+
+- Todos los usuarios se registran con rol `user`.
+- Para crear el primer admin hay que cambiar manualmente el campo `role` en MongoDB Atlas.
+- El array `posts` del usuario no duplica ids porque se usa `$addToSet`.
+- Cuando se elimina un usuario también se elimina su imagen de Cloudinary.

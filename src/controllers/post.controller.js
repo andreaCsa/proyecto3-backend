@@ -2,14 +2,9 @@ const Post = require("../models/Post");
 const User = require("../models/User");
 const mongoose = require("mongoose");
 
-//  GET ALL
 const getPosts = async (req, res) => {
   try {
-    const posts = await Post.find().populate(
-      "author",
-      "username email role"
-    );
-
+    const posts = await Post.find().populate("author", "username email role");
     return res.status(200).json(posts);
   } catch (error) {
     return res.status(500).json({
@@ -19,7 +14,6 @@ const getPosts = async (req, res) => {
   }
 };
 
-// GET BY ID
 const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).populate(
@@ -27,8 +21,9 @@ const getPostById = async (req, res) => {
       "username email role"
     );
 
-    if (!post)
+    if (!post) {
       return res.status(404).json({ message: "Post no encontrado" });
+    }
 
     return res.status(200).json(post);
   } catch (error) {
@@ -39,7 +34,6 @@ const getPostById = async (req, res) => {
   }
 };
 
-//  CREATE
 const createPost = async (req, res) => {
   try {
     const { title, content } = req.body;
@@ -53,12 +47,11 @@ const createPost = async (req, res) => {
     const newPost = new Post({
       title,
       content,
-      author: req.user._id, // 🔐 usar usuario autenticado
+      author: req.user._id,
     });
 
     const savedPost = await newPost.save();
 
-    // 🔐 Añadir post al usuario SIN DUPLICADOS
     await User.findByIdAndUpdate(
       req.user._id,
       { $addToSet: { posts: savedPost._id } },
@@ -74,17 +67,24 @@ const createPost = async (req, res) => {
   }
 };
 
-// UPDATE
 const updatePost = async (req, res) => {
   try {
-    const updated = await Post.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const post = await Post.findById(req.params.id);
 
-    if (!updated)
+    if (!post) {
       return res.status(404).json({ message: "Post no encontrado" });
+    }
+
+    if (
+      req.user.role !== "admin" &&
+      post.author.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ message: "No autorizado" });
+    }
+
+    const updated = await Post.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    }).populate("author", "username email role");
 
     return res.status(200).json(updated);
   } catch (error) {
@@ -95,7 +95,6 @@ const updatePost = async (req, res) => {
   }
 };
 
-// DELETE
 const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
@@ -105,10 +104,10 @@ const deletePost = async (req, res) => {
     }
 
     const post = await Post.findById(id);
-    if (!post)
+    if (!post) {
       return res.status(404).json({ message: "Post no encontrado" });
+    }
 
-    // Solo autor o admin puede borrar
     if (
       req.user.role !== "admin" &&
       post.author.toString() !== req.user._id.toString()
@@ -117,12 +116,7 @@ const deletePost = async (req, res) => {
     }
 
     await Post.findByIdAndDelete(id);
-
-    // Quitar el post del array del usuario
-    await User.findByIdAndUpdate(
-      post.author,
-      { $pull: { posts: id } }
-    );
+    await User.findByIdAndUpdate(post.author, { $pull: { posts: id } });
 
     return res.status(200).json({ message: "Post eliminado" });
   } catch (error) {

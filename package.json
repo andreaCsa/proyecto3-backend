@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Backend API con autenticación JWT, roles, relaciones y seed",
+  "description": "Backend API con autenticaci\u00f3n JWT, roles, relaciones y seed",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^1.41.3",
@@ -19,7 +19,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",
-    "multer": "^2.0.2",
+    "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0"
   },
   "devDependencies": {

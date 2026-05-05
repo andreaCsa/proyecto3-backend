@@ -1,9 +1,6 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-
-const User = require("./src/models/User");
-const Post = require("./src/models/Post");
+const Car = require("./src/models/Car");
 
 const connectDB = async () => {
   try {
@@ -17,49 +14,33 @@ const connectDB = async () => {
 
 const seed = async () => {
   try {
-    await User.deleteMany();
-    await Post.deleteMany();
+    await Car.deleteMany();
 
-    const hashedPassword = await bcrypt.hash("123456", 10);
+    await Car.insertMany([
+      {
+        brand: "Toyota",
+        model: "Corolla",
+        type: "Sedan",
+        image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341",
+        link: "https://www.toyota.com/"
+      },
+      {
+        brand: "BMW",
+        model: "X5",
+        type: "SUV",
+        image: "https://images.unsplash.com/photo-1555215695-3004980ad54e",
+        link: "https://www.bmw.com/"
+      },
+      {
+        brand: "Tesla",
+        model: "Model 3",
+        type: "Electric",
+        image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89",
+        link: "https://www.tesla.com/"
+      }
+    ]);
 
-    const admin = await User.create({
-      username: "admin",
-      email: "admin@test.com",
-      password: hashedPassword,
-      role: "admin",
-      posts: [],
-    });
-
-    const user = await User.create({
-      username: "user",
-      email: "user@test.com",
-      password: hashedPassword,
-      role: "user",
-      posts: [],
-    });
-
-    const post1 = await Post.create({
-      title: "Primer post",
-      content: "Contenido de prueba",
-      author: admin._id,
-    });
-
-    const post2 = await Post.create({
-      title: "Segundo post",
-      content: "Contenido del usuario",
-      author: user._id,
-    });
-
-    // Añadir posts a los usuarios sin duplicados
-    await User.findByIdAndUpdate(admin._id, {
-      $addToSet: { posts: post1._id },
-    });
-
-    await User.findByIdAndUpdate(user._id, {
-      $addToSet: { posts: post2._id },
-    });
-
-    console.log("Seed completada correctamente");
+    console.log("Seed de cars completada correctamente");
     process.exit();
   } catch (error) {
     console.log(error);

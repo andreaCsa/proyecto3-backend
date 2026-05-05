@@ -6,20 +6,21 @@ const {
   createUser,
   login,
   updateUser,
+  updateMyImage,
   deleteUser,
   updateUserRole,
 } = require("../controllers/user.controller");
 
 const authMiddleware = require("../middlewares/auth");
 const isAdmin = require("../middlewares/isAdmin");
+const { upload } = require("../middlewares/upload");
 
-// Público
-router.post("/register", createUser);
+router.post("/register", upload.single("image"), createUser);
 router.post("/login", login);
 
-// Protegidas
-router.get("/", authMiddleware, getUsers);
+router.get("/", authMiddleware, isAdmin, getUsers);
 router.put("/:id", authMiddleware, updateUser);
+router.patch("/image/me", authMiddleware, upload.single("image"), updateMyImage);
 router.delete("/:id", authMiddleware, deleteUser);
 router.put("/role/:id", authMiddleware, isAdmin, updateUserRole);
 

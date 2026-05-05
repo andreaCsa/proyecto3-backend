@@ -1,13 +1,11 @@
 const User = require("../models/User");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const cloudinary = require("../config/cloudinary");
 
-// Obtener todos los usuarios
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    const users = await User.find().select("-password").populate("posts");
     return res.status(200).json(users);
   } catch (error) {
     return res.status(500).json({
@@ -17,7 +15,6 @@ const getUsers = async (req, res) => {
   }
 };
 
-// Crear usuario
 const createUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -28,14 +25,15 @@ const createUser = async (req, res) => {
       });
     }
 
-    const existing = await User.findOne({ email });
+    const existing = await User.findOne({
+      $or: [{ email }, { username }],
+    });
+
     if (existing) {
       return res.status(400).json({
-        message: "Ya existe un usuario con ese email",
+        message: "Ya existe un usuario con ese email o username",
       });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     let imageUrl = "";
     let imagePublicId = "";
@@ -48,7 +46,7 @@ const createUser = async (req, res) => {
     const newUser = new User({
       username,
       email,
-      password: hashedPassword,
+      password,
       role: "user",
       image: imageUrl,
       imagePublicId,
@@ -56,7 +54,6 @@ const createUser = async (req, res) => {
     });
 
     const savedUser = await newUser.save();
-
     const userResponse = savedUser.toObject();
     delete userResponse.password;
 
@@ -69,7 +66,6 @@ const createUser = async (req, res) => {
   }
 };
 
-// Login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -80,14 +76,14 @@ const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
         message: "Credenciales incorrectas",
       });
     }
 
-    const ok = await bcrypt.compare(password, user.password);
+    const ok = await user.comparePassword(password);
     if (!ok) {
       return res.status(401).json({
         message: "Credenciales incorrectas",
@@ -115,29 +111,35 @@ const login = async (req, res) => {
   }
 };
 
-// Actualizar usuario
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (
-      req.user.role !== "admin" &&
-      req.user._id.toString() !== id
-    ) {
+    if (req.user.role !== "admin" && req.user._id.toString() !== id) {
       return res.status(403).json({ message: "No autorizado" });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      req.body,
-      { new: true }
-    ).select("-password");
+    const userToUpdate = await User.findById(id);
 
-    if (!updatedUser) {
+    if (!userToUpdate) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    return res.status(200).json(updatedUser);
+    if (req.body.role && req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "No puedes cambiar el rol desde esta ruta",
+      });
+    }
+
+    if (req.body.username !== undefined) userToUpdate.username = req.body.username;
+    if (req.body.email !== undefined) userToUpdate.email = req.body.email;
+    if (req.body.password !== undefined) userToUpdate.password = req.body.password;
+
+    const updatedUser = await userToUpdate.save();
+    const userResponse = updatedUser.toObject();
+    delete userResponse.password;
+
+    return res.status(200).json(userResponse);
   } catch (error) {
     return res.status(500).json({
       message: "Error actualizando usuario",
@@ -146,7 +148,35 @@ const updateUser = async (req, res) => {
   }
 };
 
-//  Eliminar usuario (CON PROTECCIÓN REAL)
+const updateMyImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Debes subir una imagen" });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (user.imagePublicId) {
+      await cloudinary.uploader.destroy(user.imagePublicId);
+    }
+
+    user.image = req.file.path;
+    user.imagePublicId = req.file.filename;
+
+    await user.save();
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    return res.status(200).json(userResponse);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error actualizando imagen",
+      error: error.message,
+    });
+  }
+};
+
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -160,11 +190,7 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    // Solo admin o el propio usuario
-    if (
-      req.user.role !== "admin" &&
-      req.user._id.toString() !== id
-    ) {
+    if (req.user.role !== "admin" && req.user._id.toString() !== id) {
       return res.status(403).json({ message: "No autorizado" });
     }
 
@@ -185,7 +211,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-
 const updateUserRole = async (req, res) => {
   try {
     const { id } = req.params;
@@ -194,6 +219,18 @@ const updateUserRole = async (req, res) => {
     if (req.user.role !== "admin") {
       return res.status(403).json({
         message: "Solo admin puede cambiar roles",
+      });
+    }
+
+    if (req.user._id.toString() === id) {
+      return res.status(403).json({
+        message: "Un admin no puede cambiarse su propio rol",
+      });
+    }
+
+    if (!["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        message: "Rol no válido",
       });
     }
 
@@ -223,6 +260,7 @@ module.exports = {
   createUser,
   login,
   updateUser,
+  updateMyImage,
   deleteUser,
   updateUserRole,
 };
